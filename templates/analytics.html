@@ -1,0 +1,331 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>📊 Advanced Analytics</h2>
+
+<!-- ✅ KPI CARDS -->
+<div class="row text-center mb-4">
+
+<div class="col-md-3">
+<div class="card p-3">
+<h6>Total Predictions</h6>
+<h3 id="totalPred">0</h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3">
+<h6>Average Price</h6>
+<h3 id="avgPriceCard">₹ 0</h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3">
+<h6>Max Price</h6>
+<h3 id="maxPrice">₹ 0</h3>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3">
+<h6>Min Price</h6>
+<h3 id="minPrice">₹ 0</h3>
+</div>
+</div>
+
+</div>
+
+<!-- ✅ MODEL ACCURACY -->
+<div class="row">
+<div class="col-md-6">
+<div class="card p-3">
+<h5>Linear Regression</h5>
+<h3>{{lr_acc}}%</h3>
+</div>
+</div>
+
+<div class="col-md-6">
+<div class="card p-3">
+<h5>Decision Tree</h5>
+<h3>{{dt_acc}}%</h3>
+</div>
+</div>
+</div>
+
+<hr>
+
+<!-- 🔴 LIVE LOGS -->
+<div class="card p-3 mb-4">
+
+<h5>🔴 Live Prediction Logs <span id="liveStatus">● LIVE</span></h5>
+
+<div class="card p-2 mb-2 text-center">
+<h4>💰 Latest Price: <span id="latestPrice">₹ 0</span></h4>
+</div>
+
+<canvas id="liveChart"></canvas>
+<p id="noDataLive" class="text-center mt-2" style="display:none;">No data yet...</p>
+
+</div>
+
+<!-- 📊 STATIC LOGS -->
+<div class="card p-3 mb-4">
+<h5>📊 Prediction Logs (Static)</h5>
+<canvas id="staticChart"></canvas>
+<p id="noDataStatic" class="text-center mt-2" style="display:none;">No data yet...</p>
+</div>
+
+<!-- 📈 ML CHARTS -->
+<div class="row">
+<div class="col-md-6">
+<h5>Actual vs Predicted</h5>
+<canvas id="lineChart"></canvas>
+</div>
+
+<div class="col-md-6">
+<h5>Model Comparison</h5>
+<canvas id="barChart"></canvas>
+</div>
+</div>
+
+<br>
+
+<div class="row">
+<div class="col-md-6">
+<h5>Accuracy Distribution</h5>
+<canvas id="pieChart"></canvas>
+</div>
+</div>
+
+<!-- 🤖 INSIGHTS -->
+<hr>
+<h4>🤖 Smart AI Insights</h4>
+
+<div class="card p-3">
+<ul id="insightsList"></ul>
+</div>
+
+<!-- 🔍 EXTRA INSIGHTS PANEL -->
+<hr>
+<h4>📊 AI Insights Panel</h4>
+
+<div class="row text-center">
+
+<div class="col-md-3">
+<div class="card p-3">
+<h6>🏆 Best Model</h6>
+<h4 id="bestModel">-</h4>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3">
+<h6>📈 Avg Prediction</h6>
+<h4 id="avgPrice">-</h4>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3">
+<h6>📉 Avg Error</h6>
+<h4 id="avgError">-</h4>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card p-3">
+<h6>🔥 Trend</h6>
+<h4 id="trend">-</h4>
+</div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+// ================= DATA =================
+const actual = {{ actual | tojson | safe }};
+const predicted = {{ predicted | tojson | safe }};
+const lr = {{ lr_acc }};
+const dt = {{ dt_acc }};
+
+// ================= LINE CHART =================
+new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+        labels: actual.map((_, i) => i + 1),
+        datasets: [
+            { label: 'Actual', data: actual },
+            { label: 'Predicted', data: predicted }
+        ]
+    }
+});
+
+// ================= BAR CHART =================
+new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Linear Regression', 'Decision Tree'],
+        datasets: [{
+            label: 'Accuracy %',
+            data: [lr, dt]
+        }]
+    }
+});
+
+// ================= PIE CHART =================
+new Chart(document.getElementById('pieChart'), {
+    type: 'pie',
+    data: {
+        labels: ['Linear Regression', 'Decision Tree'],
+        datasets: [{
+            data: [lr, dt]
+        }]
+    }
+});
+
+// ================= LIVE LOGS =================
+let liveChart;
+
+async function loadLogs() {
+
+    const res = await fetch('/get_logs');
+    const data = await res.json();
+
+    updatePremiumInsights(data); // ✅ IMPORTANT
+
+    let times = data.times || [];
+    let prices = data.prices || [];
+
+    if (prices.length === 0) {
+        document.getElementById("noDataLive").style.display = "block";
+        return;
+    } else {
+        document.getElementById("noDataLive").style.display = "none";
+    }
+
+    times = times.slice(-10);
+    prices = prices.slice(-10);
+
+    const ctx = document.getElementById('liveChart').getContext('2d');
+
+    const gradient = ctx.createLinearGradient(0,0,0,300);
+    gradient.addColorStop(0,'rgba(0,255,204,0.5)');
+    gradient.addColorStop(1,'rgba(0,255,204,0)');
+
+    if (!liveChart) {
+        liveChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: times,
+                datasets: [{
+                    label: 'Live Price',
+                    data: prices,
+                    borderColor: '#00ffcc',
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4
+                }]
+            }
+        });
+    } else {
+        liveChart.data.labels = times;
+        liveChart.data.datasets[0].data = prices;
+        liveChart.update();
+    }
+}
+
+setInterval(loadLogs, 2000);
+loadLogs();
+
+// ================= STATIC LOGS =================
+async function loadStatic() {
+
+    const res = await fetch('/get_logs');
+    const data = await res.json();
+
+    if (data.prices.length === 0) {
+        document.getElementById("noDataStatic").style.display = "block";
+        return;
+    }
+
+    new Chart(document.getElementById('staticChart'), {
+        type: 'bar',
+        data: {
+            labels: data.times,
+            datasets: [{
+                label: 'Predicted Price',
+                data: data.prices
+            }]
+        }
+    });
+}
+
+loadStatic();
+
+// ================= PREMIUM INSIGHTS =================
+function updatePremiumInsights(data){
+
+    const prices = data.prices || [];
+    if(prices.length === 0) return;
+
+    const total = prices.length;
+    const avg = prices.reduce((a,b)=>a+b,0)/total;
+    const max = Math.max(...prices);
+    const min = Math.min(...prices);
+
+    document.getElementById("totalPred").innerText = total;
+    document.getElementById("avgPriceCard").innerText = "₹ " + Math.round(avg).toLocaleString("en-IN");
+    document.getElementById("maxPrice").innerText = "₹ " + max.toLocaleString("en-IN");
+    document.getElementById("minPrice").innerText = "₹ " + min.toLocaleString("en-IN");
+
+    document.getElementById("latestPrice").innerText =
+        "₹ " + prices[prices.length-1].toLocaleString("en-IN");
+
+    let trend = prices[prices.length-1] > prices[0] ? "📈 Increasing" : "📉 Decreasing";
+
+    let best = (lr > dt) ? "Linear Regression" : "Decision Tree";
+
+    const insights = [
+        `🏆 Best Model: ${best}`,
+        `📊 Total Predictions: ${total}`,
+        `📈 Market Trend: ${trend}`,
+        `💡 Avg Price: ₹ ${Math.round(avg).toLocaleString("en-IN")}`,
+        `⚡ Latest Price: ₹ ${prices[prices.length-1].toLocaleString("en-IN")}`
+    ];
+
+    const ul = document.getElementById("insightsList");
+    ul.innerHTML = "";
+
+    insights.forEach(i=>{
+        const li = document.createElement("li");
+        li.innerText = i;
+        ul.appendChild(li);
+    });
+}
+
+// ================= EXTRA INSIGHTS =================
+function generateInsights(){
+
+    let best = (lr > dt) ? "Linear Regression" : "Decision Tree";
+    document.getElementById("bestModel").innerText = best;
+
+    let avg = predicted.reduce((a,b)=>a+b,0) / predicted.length;
+    document.getElementById("avgPrice").innerText = "₹ " + Math.round(avg).toLocaleString("en-IN");
+
+    let error = actual.map((a,i)=> Math.abs(a - predicted[i]));
+    let avgError = error.reduce((a,b)=>a+b,0) / error.length;
+    document.getElementById("avgError").innerText = "₹ " + Math.round(avgError).toLocaleString("en-IN");
+
+    let trendText = predicted[predicted.length-1] > predicted[0] ? "📈 Increasing" : "📉 Decreasing";
+    document.getElementById("trend").innerText = trendText;
+}
+
+generateInsights();
+
+</script>
+
+{% endblock %}

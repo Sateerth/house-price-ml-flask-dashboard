@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>🏠 Predict House Price</h2>
+
+<div class="card p-4">
+
+<form method="POST" onsubmit="showLoader()">
+
+    <input name="size" class="form-control mb-3" placeholder="Enter Size" required>
+
+    <input name="bedrooms" class="form-control mb-3" placeholder="Enter Bedrooms" required>
+
+    <input name="age" class="form-control mb-3" placeholder="Enter Age" required>
+
+    <button class="btn btn-primary w-100">Predict</button>
+
+</form>
+
+<!-- 🔄 LOADING -->
+<div id="loader" style="display:none; margin-top:15px;">
+    ⏳ Predicting... Please wait
+</div>
+
+</div>
+
+{% if prediction %}
+<div class="card mt-3 p-3">
+    <h4>💰 Predicted Price: ₹ {{ prediction }}</h4>
+</div>
+{% endif %}
+
+<script>
+function showLoader(){
+    document.getElementById("loader").style.display = "block";
+}
+</script>
+
+{% endblock %}

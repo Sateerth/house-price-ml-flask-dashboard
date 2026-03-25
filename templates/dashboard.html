@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>📊 Prediction History</h2>
+
+<input type="text" id="search" class="form-control mb-3" placeholder="Search...">
+<a href="/download_pdf" class="btn btn-success">
+📄 Download PDF
+</a>
+<table class="table table-dark table-striped" id="table">
+<thead>
+<tr>
+<th>Size</th>
+<th>Bedrooms</th>
+<th>Age</th>
+<th>Price</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody>
+{% for row in data %}
+<tr>
+<td>{{row[0]}}</td>
+<td>{{row[1]}}</td>
+<td>{{row[2]}}</td>
+<td>₹ {{row[3]}}</td>
+<td>{{row[4]}}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<script>
+document.getElementById("search").addEventListener("keyup", function(){
+    let value = this.value.toLowerCase();
+    let rows = document.querySelectorAll("#table tbody tr");
+
+    rows.forEach(row=>{
+        row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+    });
+});
+</script>
+
+{% endblock %}
