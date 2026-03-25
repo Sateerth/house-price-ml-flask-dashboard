@@ -39,23 +39,7 @@ This project is an end-to-end ML system where users can:
 - **Charts:** Matplotlib  
 - **PDF:** ReportLab  
 
----
 
-## 📸 Screenshots
-
-### 🔐 Login Page
-![Login](screenshots/login.png)
-
-### 📊 Dashboard
-![Dashboard](screenshots/dashboard.png)
-
-### 📈 Analytics
-![Analytics](screenshots/analytics.png)
-
-### 📄 PDF Report
-![PDF](screenshots/pdf.png)
-
----
 
 ## ⚙️ How to Run
 
